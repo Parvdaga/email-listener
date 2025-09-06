@@ -12,4 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Command to run the Gunicorn web server with an increased timeout
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "--timeout", "120", "main:app"]
+# This is the "shell" form, which correctly processes the $PORT variable
+CMD gunicorn --bind 0.0.0.0:$PORT main:app
