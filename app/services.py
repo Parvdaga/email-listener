@@ -93,6 +93,7 @@ def append_jobs_to_sheet(sheet, jobs):
         return 0
 
 # --- Gmail Service ---
+
 def fetch_unread_emails():
     """Connects to Gmail and fetches unread emails matching the subject filter."""
     try:
@@ -103,15 +104,18 @@ def fetch_unread_emails():
         search_query = f'(UNSEEN SUBJECT "{config.SUBJECT_FILTER}")'
         status, messages = mail.search(None, search_query)
         
+        # If the search fails or finds no messages, logout and return empty list
         if status != "OK" or not messages[0]:
             mail.logout()
-            return [], None, None
+            return [], None # Return two values
 
         email_ids = messages[0].split()
+        # Return the email_ids and the mail connection object
         return email_ids, mail
         
     except Exception as e:
         logger.error(f"❌ Gmail connection or search failed: {e}")
+        # On error, also return two values
         return [], None
 
 def get_email_body(msg):
