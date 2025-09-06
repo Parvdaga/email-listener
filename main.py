@@ -6,34 +6,28 @@ import email
 from email.header import decode_header
 import google.generativeai as genai
 from oauth2client.service_account import ServiceAccountCredentials
+from flask import Flask, request
 
-# ---
-# This special block writes the Google credentials from an environment
-# variable into a temporary file that gspread can read.
-# ---
+# --- Initialize Flask App ---
+app = Flask(__name__)
+
+# (The credential writing block and variable loading is the same)
 CREDENTIALS_JSON_CONTENT = os.environ.get("GCP_SA_CREDS_JSON")
 if CREDENTIALS_JSON_CONTENT:
     with open("credentials.json", "w") as f:
         f.write(CREDENTIALS_JSON_CONTENT)
-# ---
 
-# =========================================
-# 🔹 Load Configuration from Environment Variables
-# =========================================
 GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS")
 GMAIL_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
 IMAP_SERVER = "imap.gmail.com"
 SUBJECT_FILTER = "God bless you"
 SHEET_NAME = "Job Postings"
 CREDENTIALS_FILE = "credentials.json"
 
-# Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
-# (The rest of the script is exactly the same as the PythonAnywhere version)
-
+# (All your helper functions like parse_with_gemini, get_google_sheet, etc. remain exactly the same)
 def parse_with_gemini(email_body):
     # ... same code ...
     model = genai.GenerativeModel("gemini-1.5-flash")
@@ -94,6 +88,7 @@ def append_jobs_to_sheet(jobs_list, sheet):
         print(f"✅ Successfully added {len(rows_to_add)} job(s) to Google Sheet.")
 
 
+# (The main job logic is now in its own function)
 def run_job():
     # ... same code ...
     print("🚀 Starting email processing job...")
@@ -140,5 +135,17 @@ def run_job():
     except Exception as e:
         print(f"🔥 A critical error occurred: {e}")
 
-if __name__ == "__main__":
-    run_job()
+# ---
+# This is the new webhook endpoint. When Make calls our URL,
+# this function will run, which in turn calls our existing run_job() function.
+# ---
+@app.route('/webhook', methods=['POST'])
+def webhook_trigger():
+    """Triggers the email processing job."""
+    print("🔔 Webhook received! Starting job...")
+    try:
+        run_job()
+        return "OK", 200
+    except Exception as e:
+        print(f"Webhook execution failed: {e}")
+        return "Error", 500
