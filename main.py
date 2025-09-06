@@ -118,7 +118,7 @@ def parse_with_gemini(email_body):
         Return ONLY valid JSON, no markdown formatting or additional text.
 
         Email content:
-        {email_body[:2000]}  # Limit to first 2000 chars to avoid token limits
+        {email_body[:5000]}  # Limit to first 2000 chars to avoid token limits
         """
         
         response = model.generate_content(prompt)
