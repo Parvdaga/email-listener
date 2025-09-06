@@ -156,15 +156,12 @@ def get_google_sheet():
         sheet = client.open_by_key(GOOGLE_SHEET_ID).sheet1
         logger.info("✅ Successfully opened Google Sheet")
         
-        # Check if headers exist
-        try:
-            headers = sheet.row_values(1)
-            expected_headers = ["S.No", "Date", "Company Name", "Job Position", "Location", "Job Description", "Details", "Role Type", "Link/Email", "CTC", "Deadline"]
-            
-            if not headers or headers != expected_headers:
-                sheet.clear()
+       try:
+            # Check if the first row is empty
+            if not sheet.row_values(1):
+                expected_headers = ["S.No", "Date", "Company Name", "Job Position", "Location", "Job Description", "Details", "Role Type", "Link/Email", "CTC", "Deadline"]
                 sheet.insert_row(expected_headers, 1)
-                logger.info("📝 Added headers to sheet")
+                logger.info("📝 Added headers to an empty sheet")
         except Exception as e:
             logger.error(f"Error with headers: {e}")
             
