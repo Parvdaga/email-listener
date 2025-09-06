@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Command to run the Gunicorn web server, using the port provided by Railway
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "main:app"]
+CMD gunicorn --bind 0.0.0.0:$PORT main:app
