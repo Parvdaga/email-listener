@@ -9,6 +9,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def create_app():
     """Creates and configures the Flask application."""
     app = Flask(__name__)
+    
+    # Added for debugging startup
+    print("🚀 Flask app creation started!")
+    logging.info("🚀 Flask app creation started!")
 
     if not is_config_valid:
         logging.critical("CRITICAL: Application cannot start due to invalid configuration.")
@@ -21,5 +25,9 @@ def create_app():
     # Import and register routes
     from . import routes
     app.register_blueprint(routes.bp)
+
+    # Added for debugging startup
+    print("✅ Flask app configured and ready to go!")
+    logging.info("✅ Flask app configured and ready to go!")
 
     return app
