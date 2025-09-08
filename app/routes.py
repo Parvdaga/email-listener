@@ -1,6 +1,6 @@
 import email
 import logging
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from . import services
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,11 @@ def health_check():
 @bp.route("/webhook", methods=['POST'])
 def webhook_trigger():
     """Main webhook to trigger the email processing job."""
+    # Added for debugging
+    print("-".center(50, "-"))
+    logger.info("🎯 Webhook endpoint hit! Request received.")
+    print("🎯 Webhook endpoint hit! Request received.")
+    
     logger.info("🔔 Webhook received! Starting email processing job...")
     
     sheet = services.get_google_sheet()
@@ -66,6 +71,11 @@ def webhook_trigger():
 
     if mail:
         mail.logout()
+    
+    # Added for debugging
+    print("🎉 Webhook processing finished.")
+    logger.info("🎉 Webhook processing finished.")
+    print("-".center(50, "-"))
 
     return jsonify({
         "success": True,
