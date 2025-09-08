@@ -1,5 +1,6 @@
 import email
 import logging
+import traceback # Import the traceback module
 from flask import Blueprint, jsonify, request
 from . import services
 
@@ -42,22 +43,37 @@ def webhook_trigger():
 
     for e_id in email_ids:
         try:
+            # --- DEBUG STEP 1: Check if the loop starts ---
+            print(f"Processing email ID: {e_id.decode()}")
+
             _, msg_data = mail.fetch(e_id, "(RFC822)")
             msg = email.message_from_bytes(msg_data[0][1])
             body = services.get_email_body(msg)
+
+            # --- DEBUG STEP 2: Check the extracted email body ---
+            print(f"Extracted Email Body (first 200 chars): {body[:200]}")
 
             if not body:
                 logger.warning(f"⚠️ Empty body for email ID {e_id.decode()}, marking as read.")
                 mail.store(e_id, '+FLAGS', '\\Seen')
                 continue
             
+            # --- DEBUG STEP 3: Check right before the Gemini call ---
+            print("🤖 Calling Gemini API to parse email content...")
             parsed_data = services.parse_email_with_gemini(body)
+            print("🤖 Gemini API call finished.")
+            
             jobs = parsed_data.get("jobs", [])
             
+            # --- DEBUG STEP 4: Check the jobs found by Gemini ---
+            print(f"Found {len(jobs)} jobs in the email.")
+
             if jobs:
+                print("📝 Appending jobs to Google Sheet...")
                 jobs_added_count = services.append_jobs_to_sheet(sheet, jobs)
                 if jobs_added_count > 0:
                     total_jobs_added += jobs_added_count
+                print(f"✅ Appended {jobs_added_count} jobs.")
             else:
                 logger.info(f"ℹ️ No jobs found in email {e_id.decode()}.")
 
@@ -67,7 +83,10 @@ def webhook_trigger():
             logger.info(f"✅ Email {e_id.decode()} processed.")
 
         except Exception as e:
-            logger.error(f"❌ Failed to process email ID {e_id.decode()}: {e}")
+            # --- IMPORTANT: This will print the exact error to your logs ---
+            logger.error(f"❌ An error occurred while processing email ID {e_id.decode()}: {e}")
+            print(f"❌ An error occurred. Full traceback below:")
+            traceback.print_exc() # This prints the full error stack trace
 
     if mail:
         mail.logout()
