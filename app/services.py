@@ -29,18 +29,24 @@ def parse_email_with_gemini(body):
         return {"jobs": []}
     try:
         model = genai.GenerativeModel("gemini-1.5-flash")
+        # --- THIS PROMPT HAS BEEN UPDATED ---
         prompt = f"""
-        Extract job postings from the email below into a JSON object with a single key "jobs".
-        The value of "jobs" should be a list of objects, each with these keys:
-        "Date", "Company Name", "Job Position", "Location", "Job Description", "Details",
-        "Role Type", "Link/Email", "CTC", "Deadline".
-        If a field is not found, use null. If no jobs are found, return an empty list for "jobs".
-        Return ONLY valid JSON.
+        You are an expert job posting extractor. Your task is to meticulously scan an email and extract all job postings into a clean JSON object.
 
-        Email content:
+        Follow these rules strictly:
+        1.  The final output must be a single JSON object with one key: "jobs".
+        2.  The value of "jobs" must be a list of individual job objects.
+        3.  Each job object must have these exact keys: "Date", "Company Name", "Job Position", "Location", "Job Description", "Details", "Role Type", "Link/Email", "CTC", "Deadline".
+        4.  Scan the entire email. Treat any distinct block of text that describes a job role as a separate job posting, even if it's just a few lines. Pay special attention to the very beginning of the email.
+        5.  If you cannot find a value for a specific field, use null.
+        6.  If the email contains no job postings at all, return an empty list for the "jobs" key.
+        7.  Return ONLY the valid JSON object and nothing else. Do not include markdown formatting like ```json.
+
+        Email content to parse:
         {body[:8000]}
         """
         response = model.generate_content(prompt)
+        # Clean the response to ensure it's valid JSON
         cleaned_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         logger.info(f"🤖 Gemini response received.")
         return json.loads(cleaned_text)
@@ -52,7 +58,7 @@ def parse_email_with_gemini(body):
 def get_google_sheet():
     """Initializes and returns the Google Sheet object."""
     try:
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        scope = ["[https://spreadsheets.google.com/feeds](https://spreadsheets.google.com/feeds)", "[https://www.googleapis.com/auth/drive](https://www.googleapis.com/auth/drive)"]
         creds = ServiceAccountCredentials.from_json_keyfile_name(config.CREDENTIALS_FILE, scope)
         client = gspread.authorize(creds)
         sheet = client.open_by_key(config.GOOGLE_SHEET_ID).sheet1
@@ -104,18 +110,15 @@ def fetch_unread_emails():
         search_query = f'(UNSEEN SUBJECT "{config.SUBJECT_FILTER}")'
         status, messages = mail.search(None, search_query)
         
-        # If the search fails or finds no messages, logout and return empty list
         if status != "OK" or not messages[0]:
             mail.logout()
-            return [], None # Return two values
+            return [], None
 
         email_ids = messages[0].split()
-        # Return the email_ids and the mail connection object
         return email_ids, mail
         
     except Exception as e:
         logger.error(f"❌ Gmail connection or search failed: {e}")
-        # On error, also return two values
         return [], None
 
 def get_email_body(msg):
