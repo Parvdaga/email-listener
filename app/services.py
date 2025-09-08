@@ -29,7 +29,6 @@ def parse_email_with_gemini(body):
         return {"jobs": []}
     try:
         model = genai.GenerativeModel("gemini-1.5-flash")
-        # --- THIS PROMPT HAS BEEN UPDATED ---
         prompt = f"""
         You are an expert job posting extractor. Your task is to meticulously scan an email and extract all job postings into a clean JSON object.
 
@@ -46,7 +45,6 @@ def parse_email_with_gemini(body):
         {body[:8000]}
         """
         response = model.generate_content(prompt)
-        # Clean the response to ensure it's valid JSON
         cleaned_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         logger.info(f"🤖 Gemini response received.")
         return json.loads(cleaned_text)
@@ -58,7 +56,7 @@ def parse_email_with_gemini(body):
 def get_google_sheet():
     """Initializes and returns the Google Sheet object."""
     try:
-        scope = ["[https://spreadsheets.google.com/feeds](https://spreadsheets.google.com/feeds)", "[https://www.googleapis.com/auth/drive](https://www.googleapis.com/auth/drive)"]
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name(config.CREDENTIALS_FILE, scope)
         client = gspread.authorize(creds)
         sheet = client.open_by_key(config.GOOGLE_SHEET_ID).sheet1
@@ -110,15 +108,18 @@ def fetch_unread_emails():
         search_query = f'(UNSEEN SUBJECT "{config.SUBJECT_FILTER}")'
         status, messages = mail.search(None, search_query)
         
+        # If the search fails or finds no messages, logout and return empty list
         if status != "OK" or not messages[0]:
             mail.logout()
-            return [], None
+            return [], None # Return two values
 
         email_ids = messages[0].split()
+        # Return the email_ids and the mail connection object
         return email_ids, mail
         
     except Exception as e:
         logger.error(f"❌ Gmail connection or search failed: {e}")
+        # On error, also return two values
         return [], None
 
 def get_email_body(msg):
